@@ -1,0 +1,31 @@
+cat > .gitignore << 'EOF'
+# Sensible Daten
+.env
+.env.local
+.env.production
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# WhatsApp Session
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Database
+data/aeon.db
+data/users.json
+data/users.json.backup
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+EOF

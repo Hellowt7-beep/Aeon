@@ -1,0 +1,19 @@
+{
+  "user_1763496781539_kou3imm": {
+    "username": "Mr",
+    "password": "1234",
+    "phone": null,
+    "role": "user",
+    "settings": {
+      "customPrompt": null,
+      "spamLimit": 500,
+      "reactOnCommand": false,
+      "commandPrefix": "!",
+      "enableMultiAI": true,
+      "enableOCR": true,
+      "enableMega": true
+    },
+    "createdAt": 1763496781539,
+    "createdBy": "Admin"
+  }
+}
