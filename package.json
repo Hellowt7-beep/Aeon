@@ -5,9 +5,9 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "node --watch src/index.js",
-    "migrate": "node src/scripts/migrate.js"
+    "start": "NODE_OPTIONS='--experimental-modules' node src/index.js",
+    "dev": "NODE_OPTIONS='--experimental-modules' node --watch src/index.js",
+    "migrate": "NODE_OPTIONS='--experimental-modules' node src/scripts/migrate.js"
   },
   "keywords": ["whatsapp", "bot", "ai", "homework", "education"],
   "author": "Aeon AI",

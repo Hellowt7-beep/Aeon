@@ -22,16 +22,37 @@ npm install
 npm start
 ```
 
+**Hinweis**: Falls du einen `v2` Ordner hast, dann:
+```bash
+cd v2
+npm install
+npm start
+```
+
 ## 4. Secrets (🔒 Icon links)
 
+**WICHTIG**: Finde zuerst deine Replit App URL!
+
+1. Starte die App: `npm start`
+2. Klicke auf **"Open in new tab"** (oben rechts) oder das **Webview-Symbol**
+3. Die URL in der Adressleiste ist deine Public Base URL
+
+**Für dein Repl** (Aeon):
+```
+PUBLIC_BASE_URL=https://Aeon.hellowt7.replit.app
+```
+
+Dann füge diese Secrets hinzu:
 ```
 DATA_DIR=/home/runner/data
 GROQ_API_KEY=dein-key
 GOOGLE_AI_API_KEY=dein-key
 MEGA_EMAIL=deine-email
 MEGA_PASSWORD=dein-passwort
-PUBLIC_BASE_URL=https://dein-repl-name.replit.app
+PUBLIC_BASE_URL=https://Aeon.hellowt7.replit.app
 ```
+
+**Tipp**: Nach `npm start` zeigt Replit die URL automatisch an!
 
 ## 5. Persistent Storage
 

@@ -2,12 +2,13 @@
 
 language = "nodejs"
 
-# Entrypoint - Prüft ob v2 Ordner existiert, sonst direkt starten
-run = "if [ -d 'v2' ]; then cd v2 && npm install && npm start; else npm install && npm start; fi"
+# Entrypoint - Startet direkt im Root (Projekt ist ohne v2 Ordner auf GitHub)
+# Workaround: Nutze .mjs Extension da Replit package.json nicht richtig liest
+run = "if [ -f src/index.mjs ]; then node src/index.mjs; else cp src/index.js src/index.mjs && node src/index.mjs; fi"
 
 # Deploy Command
 [deploy]
-run = ["sh", "-c", "if [ -d 'v2' ]; then cd v2 && npm install && npm start; else npm install && npm start; fi"]
+run = ["sh", "-c", "npm install && npm start"]
 
 # Environment Variables (werden automatisch geladen)
 [env]
