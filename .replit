@@ -15,7 +15,3 @@ NODE_ENV = "production"
 PORT = "3000"
 DATA_DIR = "/home/runner/data"
 
-# Nix Packages (für bessere Dependencies)
-[nix]
-channel = "stable-22_11"
-
