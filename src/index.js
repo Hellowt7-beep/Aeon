@@ -39,7 +39,9 @@ function ensureDir(dirPath) {
 const uploadsDir = path.join(publicDir, 'uploads');
 const materialsUploadDir = path.join(uploadsDir, 'materials');
 const avatarsUploadDir = path.join(uploadsDir, 'avatars');
-const whatsappSessionDir = path.join(__dirname, 'data', 'whatsapp-session');
+// Nutze DATA_DIR wenn gesetzt, sonst lokales data Verzeichnis
+const dataDir = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(__dirname, 'data');
+const whatsappSessionDir = path.join(dataDir, 'whatsapp-session');
 
 app.use(express.json());
 if (fs.existsSync(publicDir)) {

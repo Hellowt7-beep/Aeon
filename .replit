@@ -1,0 +1,21 @@
+# Replit Configuration für Aeon WhatsApp Bot
+
+language = "nodejs"
+
+# Entrypoint - Prüft ob v2 Ordner existiert, sonst direkt starten
+run = "if [ -d 'v2' ]; then cd v2 && npm install && npm start; else npm install && npm start; fi"
+
+# Deploy Command
+[deploy]
+run = ["sh", "-c", "if [ -d 'v2' ]; then cd v2 && npm install && npm start; else npm install && npm start; fi"]
+
+# Environment Variables (werden automatisch geladen)
+[env]
+NODE_ENV = "production"
+PORT = "3000"
+DATA_DIR = "/home/runner/data"
+
+# Nix Packages (für bessere Dependencies)
+[nix]
+channel = "stable-22_11"
+
