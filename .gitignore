@@ -1,4 +1,3 @@
-cat > .gitignore << 'EOF'
 # Sensible Daten
 .env
 .env.local
@@ -6,7 +5,8 @@ cat > .gitignore << 'EOF'
 
 # Dependencies
 node_modules/
-package-lock.json
+# package-lock.json  # Behalten für npm
+bun.lock  # Ignorieren, wenn npm verwendet wird
 
 # WhatsApp Session
 .wwebjs_auth/
@@ -16,6 +16,8 @@ package-lock.json
 data/aeon.db
 data/users.json
 data/users.json.backup
+src/data/aeon.db
+src/data/*.db
 
 # Logs
 *.log
@@ -28,4 +30,11 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
-EOF
+
+# IDE
+.vscode/
+.idea/
+
+# Backups
+*.backup
+*.backup.db

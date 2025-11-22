@@ -1003,15 +1003,21 @@ function requireAdmin(req, res, next) {
 }
 app.post('/api/register', async (req, res) => {
     try {
-        const { username, password, phone } = req.body || {};
+        const { username, password, phone, religion, secondLanguage } = req.body || {};
         if (!username || !password) {
             return res.status(400).json({ error: 'Benutzername und Passwort erforderlich' });
         }
         if (password.length < 6) {
             return res.status(400).json({ error: 'Passwort muss mindestens 6 Zeichen enthalten' });
         }
+        if (!religion || !['evangelisch', 'katholisch', 'ethik'].includes(religion)) {
+            return res.status(400).json({ error: 'Bitte wähle eine Religion: evangelisch, katholisch oder ethik' });
+        }
+        if (!secondLanguage || !['französisch', 'latein'].includes(secondLanguage)) {
+            return res.status(400).json({ error: 'Bitte wähle eine 2. Sprache: französisch oder latein' });
+        }
 
-        const result = userManager.createUser(username.trim(), password, phone?.trim() || null, 'self-service');
+        const result = userManager.createUser(username.trim(), password, phone?.trim() || null, 'self-service', religion, secondLanguage);
 
         if (!result.success) {
             return res.status(400).json({ error: result.message || 'Registrierung fehlgeschlagen' });
@@ -1071,12 +1077,15 @@ app.post('/api/logout', requireAuth, (req, res) => {
 });
 
 app.get('/api/session', requireAuth, (req, res) => {
+    const user = userManager.getUserById(req.session.userId);
     res.json({
         success: true,
         user: {
             username: req.session.username,
             role: req.session.role,
-            userId: req.session.userId
+            userId: req.session.userId,
+            religion: user?.religion || null,
+            secondLanguage: user?.secondLanguage || null
         }
     });
 });
@@ -1263,12 +1272,12 @@ app.post('/api/homework', requireAuth, (req, res) => {
     if (!userId) {
         return res.status(400).json({ error: 'Nur verifizierte Benutzer können Hausaufgaben hinzufügen' });
     }
-    const { subject = '', description = '' } = req.body || {};
+    const { subject = '', description = '', dueDate = null } = req.body || {};
     if (!subject.trim() || !description.trim()) {
         return res.status(400).json({ error: 'Fach und Beschreibung erforderlich' });
     }
 
-    const result = db.upsertHomework(userId, subject, description);
+    const result = db.upsertHomework(userId, subject, description, dueDate);
     if (!result.success) {
         return res.status(400).json(result);
     }
@@ -1278,6 +1287,36 @@ app.post('/api/homework', requireAuth, (req, res) => {
         profile: userManager.getUserProfile(item.user_id)
     }));
     res.json({ success: true, homework, status: result });
+});
+
+app.put('/api/homework/:id/status', requireAuth, (req, res) => {
+    const homeworkId = parseInt(req.params.id, 10);
+    if (Number.isNaN(homeworkId)) {
+        return res.status(400).json({ error: 'Ungültige ID' });
+    }
+
+    const entry = db.getHomeworkById(homeworkId);
+    if (!entry) {
+        return res.status(404).json({ error: 'Eintrag nicht gefunden' });
+    }
+
+    if (req.session.role !== 'admin' && entry.user_id !== req.session.userId) {
+        return res.status(403).json({ error: 'Keine Berechtigung' });
+    }
+
+    const { completed, needsHelp } = req.body || {};
+    const result = db.updateHomeworkStatus(homeworkId, completed, needsHelp);
+    
+    if (!result.success) {
+        return res.status(400).json(result);
+    }
+
+    const homework = db.getHomework(200).map(item => ({
+        ...item,
+        profile: userManager.getUserProfile(item.user_id)
+    }));
+
+    res.json({ success: true, homework });
 });
 
 app.delete('/api/homework/:id', requireAuth, (req, res) => {

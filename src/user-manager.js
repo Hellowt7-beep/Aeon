@@ -213,13 +213,15 @@ export class UserManager {
                 username: user.username,
                 phone: user.phone,
                 role: user.role,
+                religion: user.religion || null,
+                secondLanguage: user.secondLanguage || null,
                 settings: formattedSettings
             }
         };
     }
 
     // Admin/Self-Service: Create User
-    createUser(username, password, phone = null, createdBy = 'admin') {
+    createUser(username, password, phone = null, createdBy = 'admin', religion = null, secondLanguage = null) {
         const cleanedUsername = (username || '').trim();
         if (!cleanedUsername) {
             return { success: false, message: 'Benutzername erforderlich' };
@@ -255,7 +257,9 @@ export class UserManager {
             'user',
             { ...DEFAULT_BASE_SETTINGS },
             createdBy,
-            defaultAdvanced
+            defaultAdvanced,
+            religion,
+            secondLanguage
         );
 
         if (!success) {
@@ -274,6 +278,8 @@ export class UserManager {
                 username: user.username,
                 phone: user.phone,
                 role: user.role,
+                religion: user.religion || null,
+                secondLanguage: user.secondLanguage || null,
                 settings: shapedSettings
             },
             userId

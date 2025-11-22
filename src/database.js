@@ -155,6 +155,8 @@ export class DatabaseService {
             );
         `);
         this.ensureExtraSettingsColumn();
+        this.ensureUserProfileColumns();
+        this.ensureHomeworkColumns();
 
         // Sessions Table
         this.db.exec(`
@@ -187,6 +189,9 @@ export class DatabaseService {
                 subject TEXT NOT NULL,
                 description TEXT NOT NULL,
                 normalized TEXT UNIQUE NOT NULL,
+                due_date INTEGER,
+                completed INTEGER DEFAULT 0,
+                needs_help INTEGER DEFAULT 0,
                 created_at INTEGER NOT NULL
             );
         `);
@@ -446,6 +451,41 @@ export class DatabaseService {
         }
     }
 
+    ensureUserProfileColumns() {
+        try {
+            const columns = this.db.prepare(`PRAGMA table_info(users)`).all();
+            const columnNames = columns.map(col => col.name);
+            
+            if (!columnNames.includes('religion')) {
+                this.db.exec(`ALTER TABLE users ADD COLUMN religion TEXT`);
+            }
+            if (!columnNames.includes('second_language')) {
+                this.db.exec(`ALTER TABLE users ADD COLUMN second_language TEXT`);
+            }
+        } catch (error) {
+            console.error('⚠️ Konnte User-Profil-Spalten nicht hinzufügen:', error.message);
+        }
+    }
+
+    ensureHomeworkColumns() {
+        try {
+            const columns = this.db.prepare(`PRAGMA table_info(homework)`).all();
+            const columnNames = columns.map(col => col.name);
+            
+            if (!columnNames.includes('due_date')) {
+                this.db.exec(`ALTER TABLE homework ADD COLUMN due_date INTEGER`);
+            }
+            if (!columnNames.includes('completed')) {
+                this.db.exec(`ALTER TABLE homework ADD COLUMN completed INTEGER DEFAULT 0`);
+            }
+            if (!columnNames.includes('needs_help')) {
+                this.db.exec(`ALTER TABLE homework ADD COLUMN needs_help INTEGER DEFAULT 0`);
+            }
+        } catch (error) {
+            console.error('⚠️ Konnte Hausaufgaben-Spalten nicht hinzufügen:', error.message);
+        }
+    }
+
     normalizeHomeworkKey(subject, description) {
         const cleanSubject = (subject || '').toLowerCase().trim();
         const cleanDescription = (description || '').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -454,14 +494,14 @@ export class DatabaseService {
 
     // ========== USERS ==========
 
-    createUser(userId, username, password, phone = null, role = 'user', settings = {}, createdBy = 'admin', extraSettings = {}) {
+    createUser(userId, username, password, phone = null, role = 'user', settings = {}, createdBy = 'admin', extraSettings = {}, religion = null, secondLanguage = null) {
         const stmt = this.db.prepare(`
             INSERT INTO users (
                 user_id, username, password, phone, role,
                 custom_prompt, spam_limit, react_on_command, command_prefix,
                 enable_multi_ai, enable_ocr, enable_mega,
-                created_at, created_by, extra_settings
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                created_at, created_by, extra_settings, religion, second_language
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         try {
@@ -480,7 +520,9 @@ export class DatabaseService {
                 settings.enableMega !== false ? 1 : 0,
                 Date.now(),
                 createdBy,
-                JSON.stringify(extraSettings || {})
+                JSON.stringify(extraSettings || {}),
+                religion || null,
+                secondLanguage || null
             );
             return true;
         } catch (error) {
@@ -501,6 +543,8 @@ export class DatabaseService {
             password: user.password,
             phone: user.phone,
             role: user.role,
+            religion: user.religion || null,
+            secondLanguage: user.second_language || null,
             settings: {
                 customPrompt: user.custom_prompt,
                 spamLimit: user.spam_limit,
@@ -528,6 +572,8 @@ export class DatabaseService {
             password: user.password,
             phone: user.phone,
             role: user.role,
+            religion: user.religion || null,
+            secondLanguage: user.second_language || null,
             settings: {
                 customPrompt: user.custom_prompt,
                 spamLimit: user.spam_limit,
@@ -552,6 +598,8 @@ export class DatabaseService {
             username: user.username,
             phone: user.phone,
             role: user.role,
+            religion: user.religion || null,
+            secondLanguage: user.second_language || null,
             settings: {
                 customPrompt: user.custom_prompt,
                 spamLimit: user.spam_limit,
@@ -608,36 +656,62 @@ export class DatabaseService {
         return result.changes > 0;
     }
 
-    upsertHomework(userId, subject, description) {
+    upsertHomework(userId, subject, description, dueDate = null) {
         if (!userId || !subject || !description) {
             return { success: false, message: 'Ungültige Eingabe' };
         }
 
         const normalized = this.normalizeHomeworkKey(subject, description);
-        const existing = this.db.prepare('SELECT id FROM homework WHERE user_id = ?').get(userId);
+        const existing = this.db.prepare('SELECT id FROM homework WHERE user_id = ? AND normalized = ?').get(userId, normalized);
         const timestamp = Date.now();
 
         if (existing) {
             const stmt = this.db.prepare(`
                 UPDATE homework
-                SET subject = ?, description = ?, normalized = ?, created_at = ?
+                SET subject = ?, description = ?, normalized = ?, due_date = ?, created_at = ?
                 WHERE id = ?
             `);
-            stmt.run(subject.trim(), description.trim(), normalized, timestamp, existing.id);
-            return { success: true, updated: true };
+            stmt.run(subject.trim(), description.trim(), normalized, dueDate, timestamp, existing.id);
+            return { success: true, updated: true, id: existing.id };
         }
 
         const stmt = this.db.prepare(`
-            INSERT OR IGNORE INTO homework (user_id, subject, description, normalized, created_at)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO homework (user_id, subject, description, normalized, due_date, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
         `);
-        const info = stmt.run(userId, subject.trim(), description.trim(), normalized, timestamp);
+        const info = stmt.run(userId, subject.trim(), description.trim(), normalized, dueDate, timestamp);
 
         if (info.changes === 0) {
             return { success: true, duplicate: true };
         }
 
-        return { success: true, created: true };
+        return { success: true, created: true, id: info.lastInsertRowid };
+    }
+
+    updateHomeworkStatus(homeworkId, completed = null, needsHelp = null) {
+        const updates = [];
+        const values = [];
+        
+        if (completed !== null) {
+            updates.push('completed = ?');
+            values.push(completed ? 1 : 0);
+        }
+        if (needsHelp !== null) {
+            updates.push('needs_help = ?');
+            values.push(needsHelp ? 1 : 0);
+        }
+        
+        if (updates.length === 0) {
+            return { success: false, message: 'Keine Updates angegeben' };
+        }
+        
+        values.push(homeworkId);
+        const stmt = this.db.prepare(`
+            UPDATE homework SET ${updates.join(', ')} WHERE id = ?
+        `);
+        const result = stmt.run(...values);
+        
+        return { success: result.changes > 0 };
     }
 
     getHomework(limit = 100) {

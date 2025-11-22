@@ -3868,6 +3868,23 @@
                             <label class="form-label">Passwort (min. 6 Zeichen)</label>
                             <input type="password" id="registerPassword" class="input-field" required minlength="6" autocomplete="new-password" />
                         </div>
+                        <div class="form-group">
+                            <label class="form-label">Religion *</label>
+                            <select id="registerReligion" class="input-field" required>
+                                <option value="">Bitte wählen</option>
+                                <option value="evangelisch">Evangelisch</option>
+                                <option value="katholisch">Katholisch</option>
+                                <option value="ethik">Ethik</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">2. Sprache *</label>
+                            <select id="registerSecondLanguage" class="input-field" required>
+                                <option value="">Bitte wählen</option>
+                                <option value="französisch">Französisch</option>
+                                <option value="latein">Latein</option>
+                            </select>
+                        </div>
                         <button type="submit" class="btn btn-primary" style="width: 100%;">Registrierung starten</button>
                     </form>
                     <div class="auth-note">Nach der Registrierung siehst du sofort dein Dashboard. Wenn du Fragen hast, melde dich einfach bei deinem Team.</div>
@@ -3976,8 +3993,16 @@
                             <h3>Hausaufgaben</h3>
                             <p>Trage kurz ein, was noch zu erledigen ist. Alle sehen sofort den Stand.</p>
                         </div>
+                        <div id="homeworkSummaryBar" class="homework-summary-bar" style="display: none; margin-bottom: 20px; padding: 12px; background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--border-color);">
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                                <span style="font-weight: 500; color: var(--text-primary);">📋 Fällig:</span>
+                                <div id="homeworkSummaryItems" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+                            </div>
+                        </div>
                         <form id="homeworkForm" class="panel-form">
-                            <input type="text" id="homeworkSubject" class="input-field" placeholder="Fach z.B. Mathematik" required />
+                            <select id="homeworkSubject" class="input-field" required>
+                                <option value="">Fach auswählen...</option>
+                            </select>
                             <textarea id="homeworkDescription" class="input-field" placeholder="Beschreibe kurz die Aufgabe" required></textarea>
                             <button type="submit" class="btn btn-primary">Hausaufgabe speichern</button>
                         </form>
@@ -4398,6 +4423,112 @@
         let homeworkItems = [];
         let materialItems = [];
         let materialMap = new Map();
+        
+        // Fächer-Konfiguration mit Farben pro Wochentag
+        const SUBJECT_CONFIG = {
+            montag: {
+                'mathe': { color: '#3b82f6', name: 'Mathe' },
+                'chemie': { color: '#10b981', name: 'Chemie' },
+                'musik': { color: '#ec4899', name: 'Musik' },
+                'latein': { color: '#f97316', name: 'Latein' },
+                'französisch': { color: '#f97316', name: 'Französisch' },
+                'deutsch': { color: '#ef4444', name: 'Deutsch' },
+                'geschichte': { color: '#ffffff', name: 'Geschichte' },
+                'informatik': { color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', name: 'Informatik' }
+            },
+            dienstag: {
+                'musik': { color: '#ec4899', name: 'Musik' },
+                'english': { color: '#eab308', name: 'English' },
+                'mathe': { color: '#3b82f6', name: 'Mathe' },
+                'deutsch': { color: '#ef4444', name: 'Deutsch' },
+                'physik': { color: '#a855f7', name: 'Physik' },
+                'religion evangelisch': { color: '#6b7280', name: 'Religion (Evangelisch)' },
+                'religion katholisch': { color: '#6b7280', name: 'Religion (Katholisch)' },
+                'religion ethik': { color: '#6b7280', name: 'Religion (Ethik)' }
+            },
+            mittwoch: {
+                'sozialkunde': { color: '#000000', name: 'Sozialkunde' },
+                'english': { color: '#eab308', name: 'English' },
+                'französisch': { color: '#f97316', name: 'Französisch' },
+                'latein': { color: '#f97316', name: 'Latein' },
+                'mathe': { color: '#3b82f6', name: 'Mathe' },
+                'geschichte': { color: '#ffffff', name: 'Geschichte' },
+                'sport': { color: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\'%3E%3Cpath d=\'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z\'/%3E%3C/svg%3E")', name: 'Sport' }
+            },
+            donnerstag: {
+                'deutsch': { color: '#ef4444', name: 'Deutsch' },
+                'latein': { color: '#f97316', name: 'Latein' },
+                'französisch': { color: '#f97316', name: 'Französisch' },
+                'sport': { color: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\'%3E%3Cpath d=\'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z\'/%3E%3C/svg%3E")', name: 'Sport' },
+                'chemie': { color: '#10b981', name: 'Chemie' },
+                'physik': { color: '#a855f7', name: 'Physik' }
+            },
+            freitag: {
+                'religion katholisch': { color: '#6b7280', name: 'Religion (Katholisch)' },
+                'religion evangelisch': { color: '#6b7280', name: 'Religion (Evangelisch)' },
+                'religion ethik': { color: '#6b7280', name: 'Religion (Ethik)' },
+                'english': { color: '#eab308', name: 'English' },
+                'mathe': { color: '#3b82f6', name: 'Mathe' },
+                'latein': { color: '#f97316', name: 'Latein' },
+                'französisch': { color: '#f97316', name: 'Französisch' },
+                'deutsch': { color: '#ef4444', name: 'Deutsch' },
+                'sozialkunde': { color: '#000000', name: 'Sozialkunde' }
+            }
+        };
+        
+        // Hilfsfunktion: Verfügbare Fächer basierend auf Religion und 2. Sprache
+        function getAvailableSubjects(religion, secondLanguage) {
+            const allSubjects = new Set();
+            Object.values(SUBJECT_CONFIG).forEach(daySubjects => {
+                Object.keys(daySubjects).forEach(subject => {
+                    // Filtere Religion basierend auf Auswahl
+                    if (subject.startsWith('religion ')) {
+                        if (subject === `religion ${religion}`) {
+                            allSubjects.add(subject);
+                        }
+                    } else if (subject === 'französisch' || subject === 'latein') {
+                        // Nur die gewählte 2. Sprache hinzufügen
+                        if (subject === secondLanguage) {
+                            allSubjects.add(subject);
+                        }
+                    } else {
+                        // Alle anderen Fächer hinzufügen
+                        allSubjects.add(subject);
+                    }
+                });
+            });
+            return Array.from(allSubjects).sort();
+        }
+        
+        // Hilfsfunktion: Fächer-Farbe für ein Fach
+        function getSubjectColor(subject) {
+            for (const daySubjects of Object.values(SUBJECT_CONFIG)) {
+                if (daySubjects[subject]) {
+                    return daySubjects[subject].color;
+                }
+            }
+            return '#6b7280'; // Default grau
+        }
+        
+        // Hilfsfunktion: Fächer-Name für ein Fach
+        function getSubjectName(subject) {
+            for (const daySubjects of Object.values(SUBJECT_CONFIG)) {
+                if (daySubjects[subject]) {
+                    return daySubjects[subject].name;
+                }
+            }
+            return subject.charAt(0).toUpperCase() + subject.slice(1);
+        }
+        
+        // Hilfsfunktion: Welcher Tag hat dieses Fach?
+        function getSubjectDay(subject) {
+            for (const [day, daySubjects] of Object.entries(SUBJECT_CONFIG)) {
+                if (daySubjects[subject]) {
+                    return day;
+                }
+            }
+            return null;
+        }
         let currentMainView = 'home';
         let currentProfile = null;
         const CURRICULUM_STORAGE_PREFIX = 'curriculum_selection_';
@@ -4649,6 +4780,9 @@
                     applyAccessibility(userPreferences.accessibility);
                 }
                 
+                // Populate subject dropdown when user is loaded
+                populateSubjectDropdown();
+                
                 showDashboard();
             } catch (error) {
                 console.error('Session check error:', error);
@@ -4671,6 +4805,9 @@
                 applyAccessibility(userPreferences.accessibility);
                 currentProfile = currentUser.settings.profile || null;
             }
+
+            // Populate subject dropdown when user is loaded
+            populateSubjectDropdown();
 
             updateSidebarAvatar(currentProfile?.avatarUrl);
             SoundSystem.playSuccess(); // Clean, deep success sound
@@ -4812,6 +4949,17 @@
                     submitBtn.disabled = true;
                     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registriere...';
 
+                    const religion = document.getElementById('registerReligion').value;
+                    const secondLanguage = document.getElementById('registerSecondLanguage').value;
+
+                    if (!religion || !secondLanguage) {
+                        registerError.textContent = 'Bitte wähle Religion und 2. Sprache';
+                        registerError.classList.remove('hidden');
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalBtnText;
+                        return;
+                    }
+
                     try {
                         const res = await fetch('/api/register', {
                             method: 'POST',
@@ -4819,7 +4967,9 @@
                             body: JSON.stringify({
                                 username,
                                 phone: phone || null,
-                                password
+                                password,
+                                religion,
+                                secondLanguage
                             })
                         });
 
@@ -5062,6 +5212,7 @@
             }
 
             switchMainView('home');
+            populateSubjectDropdown(); // Populate subject dropdown when dashboard loads
             loadHomeworkBoard();
             loadMaterialsGallery();
             fetchOwnProfile();
@@ -7512,7 +7663,60 @@
             });
         }
 
+        function populateSubjectDropdown() {
+            const subjectSelect = document.getElementById('homeworkSubject');
+            if (!subjectSelect || !currentUser) return;
+            
+            const religion = currentUser.religion;
+            const secondLanguage = currentUser.secondLanguage;
+            
+            if (!religion || !secondLanguage) {
+                subjectSelect.innerHTML = '<option value="">Bitte zuerst Religion und 2. Sprache in den Einstellungen wählen</option>';
+                return;
+            }
+            
+            const availableSubjects = getAvailableSubjects(religion, secondLanguage);
+            subjectSelect.innerHTML = '<option value="">Fach auswählen...</option>' + 
+                availableSubjects.map(subject => {
+                    const name = getSubjectName(subject);
+                    return `<option value="${escapeHtml(subject)}">${escapeHtml(name)}</option>`;
+                }).join('');
+        }
+        
+        function calculateDueDate(subject) {
+            const today = new Date();
+            const dayOfWeek = today.getDay(); // 0 = Sonntag, 1 = Montag, etc.
+            const dayNames = ['sonntag', 'montag', 'dienstag', 'mittwoch', 'donnerstag', 'freitag', 'samstag'];
+            const dayNamesDE = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+            
+            const subjectDay = getSubjectDay(subject);
+            if (!subjectDay) return null;
+            
+            const dayIndex = dayNames.indexOf(subjectDay);
+            if (dayIndex === -1) return null;
+            
+            // Berechne Tage bis zum nächsten Tag mit diesem Fach
+            let daysUntil = dayIndex - dayOfWeek;
+            if (daysUntil <= 0) {
+                daysUntil += 7; // Nächste Woche
+            }
+            
+            const dueDate = new Date(today);
+            dueDate.setDate(today.getDate() + daysUntil);
+            dueDate.setHours(23, 59, 59, 999); // Ende des Tages
+            
+            return {
+                timestamp: dueDate.getTime(),
+                dayName: dayNamesDE[dayIndex]
+            };
+        }
+        
         function initHomeInteractions() {
+            // Populate subject dropdown when user is loaded
+            if (currentUser) {
+                populateSubjectDropdown();
+            }
+            
             const homeworkForm = document.getElementById('homeworkForm');
             if (homeworkForm) {
                 homeworkForm.addEventListener('submit', async (e) => {
@@ -7521,6 +7725,10 @@
                     const subject = document.getElementById('homeworkSubject').value.trim();
                     const description = document.getElementById('homeworkDescription').value.trim();
                     if (!subject || !description) return;
+                    
+                    const dueDateInfo = calculateDueDate(subject);
+                    const dueDate = dueDateInfo ? dueDateInfo.timestamp : null;
+                    
                     try {
                         const res = await fetch('/api/homework', {
                             method: 'POST',
@@ -7528,7 +7736,7 @@
                                 'Content-Type': 'application/json',
                                 'x-session-id': sessionId
                             },
-                            body: JSON.stringify({ subject, description })
+                            body: JSON.stringify({ subject, description, dueDate })
                         });
                         const data = await res.json();
                         if (!res.ok) {
@@ -7537,8 +7745,10 @@
                         }
                         homeworkItems = data.homework || [];
                         renderHomeworkBoard();
+                        renderHomeworkSummary();
                         updateHeroSnapshot();
                         homeworkForm.reset();
+                        populateSubjectDropdown(); // Reset dropdown
                     } catch (error) {
                         alert('Netzwerkfehler: ' + error.message);
                     }
@@ -7601,6 +7811,7 @@
                 if (res.ok) {
                     homeworkItems = data.homework || [];
                     renderHomeworkBoard();
+                    renderHomeworkSummary();
                     updateHeroSnapshot();
                 }
             } catch (error) {
@@ -7608,22 +7819,166 @@
             }
         }
 
+        function renderHomeworkSummary() {
+            const summaryBar = document.getElementById('homeworkSummaryBar');
+            const summaryItems = document.getElementById('homeworkSummaryItems');
+            if (!summaryBar || !summaryItems) return;
+            
+            // Filtere Hausaufgaben: Nur die, die für den aktuellen User relevant sind
+            // (basierend auf seiner Religion und 2. Sprache) und nicht erledigt
+            const relevantHomework = homeworkItems.filter(item => {
+                if (item.completed) return false;
+                
+                // Prüfe ob das Fach für den User relevant ist
+                const subject = item.subject;
+                const userReligion = currentUser?.religion;
+                const userSecondLanguage = currentUser?.secondLanguage;
+                
+                // Wenn es eine Religion ist, muss es die des Users sein
+                if (subject.startsWith('religion ')) {
+                    return subject === `religion ${userReligion}`;
+                }
+                
+                // Wenn es Französisch oder Latein ist, muss es die 2. Sprache des Users sein
+                if (subject === 'französisch' || subject === 'latein') {
+                    return subject === userSecondLanguage;
+                }
+                
+                // Alle anderen Fächer sind relevant
+                return true;
+            });
+            
+            if (relevantHomework.length === 0) {
+                summaryBar.style.display = 'none';
+                return;
+            }
+            
+            summaryBar.style.display = 'block';
+            
+            const today = new Date();
+            const dayNames = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+            
+            const summaryHTML = relevantHomework.map(entry => {
+                const subjectName = getSubjectName(entry.subject);
+                const subjectColor = getSubjectColor(entry.subject);
+                const ownerName = getHomeworkOwner(entry);
+                let dueText = '';
+                
+                if (entry.due_date) {
+                    const dueDate = new Date(entry.due_date);
+                    const daysDiff = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+                    const dayName = dayNames[dueDate.getDay()];
+                    
+                    if (daysDiff === 0) {
+                        dueText = 'heute';
+                    } else if (daysDiff === 1) {
+                        dueText = 'morgen';
+                    } else if (daysDiff === 2) {
+                        dueText = 'übermorgen';
+                    } else {
+                        dueText = `bis ${dayName}`;
+                    }
+                }
+                
+                const style = subjectColor.startsWith('linear-gradient') 
+                    ? `background: ${subjectColor}; color: white;`
+                    : `background-color: ${subjectColor}; color: ${subjectColor === '#ffffff' || subjectColor === '#000000' ? (subjectColor === '#ffffff' ? '#000' : '#fff') : 'white'};`;
+                
+                const isOwn = entry.user_id === currentUser?.userId;
+                const ownerText = isOwn ? '' : `eingetragen ${escapeHtml(ownerName)}, `;
+                
+                return `<span style="padding: 4px 12px; border-radius: 12px; font-size: 13px; ${style}">${ownerText}${escapeHtml(subjectName)} ${dueText ? dueText : ''}</span>`;
+            }).join('');
+            
+            summaryItems.innerHTML = summaryHTML || '<span style="color: var(--text-secondary);">Keine fälligen Aufgaben</span>';
+        }
+        
         function renderHomeworkBoard() {
             const list = document.getElementById('homeworkList');
             if (!list) return;
-            if (!homeworkItems.length) {
+            
+            // Filtere Hausaufgaben: Nur die, die für den aktuellen User relevant sind
+            // (basierend auf seiner Religion und 2. Sprache)
+            const relevantHomework = homeworkItems.filter(item => {
+                const subject = item.subject;
+                const userReligion = currentUser?.religion;
+                const userSecondLanguage = currentUser?.secondLanguage;
+                
+                // Wenn es eine Religion ist, muss es die des Users sein
+                if (subject.startsWith('religion ')) {
+                    return subject === `religion ${userReligion}`;
+                }
+                
+                // Wenn es Französisch oder Latein ist, muss es die 2. Sprache des Users sein
+                if (subject === 'französisch' || subject === 'latein') {
+                    return subject === userSecondLanguage;
+                }
+                
+                // Alle anderen Fächer sind relevant
+                return true;
+            });
+            
+            if (!relevantHomework.length) {
                 list.innerHTML = '<div class="empty-state">Noch keine Hausaufgaben vorhanden.</div>';
+                renderHomeworkSummary();
                 return;
             }
-            list.innerHTML = homeworkItems.map(entry => {
+            list.innerHTML = relevantHomework.map(entry => {
                 const canDelete = canManageHomework(entry.user_id);
+                const canEdit = canDelete; // User kann eigene Aufgaben bearbeiten
                 const ownerName = getHomeworkOwner(entry);
+                const subjectName = getSubjectName(entry.subject);
+                const subjectColor = getSubjectColor(entry.subject);
+                const isCompleted = entry.completed === 1;
+                const needsHelp = entry.needs_help === 1;
+                
+                const subjectStyle = subjectColor.startsWith('linear-gradient')
+                    ? `background: ${subjectColor}; color: white;`
+                    : `background-color: ${subjectColor}; color: ${subjectColor === '#ffffff' || subjectColor === '#000000' ? (subjectColor === '#ffffff' ? '#000' : '#fff') : 'white'};`;
+                
+                let dueDateText = '';
+                if (entry.due_date) {
+                    const dueDate = new Date(entry.due_date);
+                    const today = new Date();
+                    const daysDiff = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+                    const dayNames = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+                    const dayName = dayNames[dueDate.getDay()];
+                    
+                    if (daysDiff === 0) {
+                        dueDateText = ' (heute)';
+                    } else if (daysDiff === 1) {
+                        dueDateText = ' (morgen)';
+                    } else if (daysDiff === 2) {
+                        dueDateText = ' (übermorgen)';
+                    } else {
+                        dueDateText = ` (bis ${dayName})`;
+                    }
+                }
+                
                 return `
-                    <div class="homework-card animate-fade-in" data-id="${entry.id}">
+                    <div class="homework-card animate-fade-in" data-id="${entry.id}" style="opacity: ${isCompleted ? '0.6' : '1'};">
                         <div class="homework-card-header">
-                            <div>
-                                <h4>${escapeHtml(entry.subject)}</h4>
-                                <p>${escapeHtml(entry.description)}</p>
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <span style="padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 500; ${subjectStyle}">
+                                        ${escapeHtml(subjectName)}
+                                    </span>
+                                    ${dueDateText ? `<span style="font-size: 12px; color: var(--text-secondary);">${dueDateText}</span>` : ''}
+                                </div>
+                                <h4 style="text-decoration: ${isCompleted ? 'line-through' : 'none'}; margin-bottom: 4px;">${escapeHtml(entry.subject)}</h4>
+                                <p style="text-decoration: ${isCompleted ? 'line-through' : 'none'};">${escapeHtml(entry.description)}</p>
+                                ${canEdit ? `
+                                    <div style="display: flex; gap: 12px; margin-top: 12px; align-items: center;">
+                                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
+                                            <input type="checkbox" ${isCompleted ? 'checked' : ''} onchange="updateHomeworkStatus(${entry.id}, 'completed', this.checked)" />
+                                            <span>Erledigt</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
+                                            <input type="checkbox" ${needsHelp ? 'checked' : ''} onchange="updateHomeworkStatus(${entry.id}, 'needsHelp', this.checked)" />
+                                            <span>KI-Hilfe</span>
+                                        </label>
+                                    </div>
+                                ` : ''}
                             </div>
                             ${canDelete ? `
                                 <button class="icon-button" onclick="deleteHomeworkItem(${entry.id})" title="Eintrag löschen">
@@ -7638,6 +7993,32 @@
                     </div>
                 `;
             }).join('');
+            renderHomeworkSummary();
+        }
+        
+        async function updateHomeworkStatus(homeworkId, field, value) {
+            if (!sessionId) return;
+            try {
+                const res = await fetch(`/api/homework/${homeworkId}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-session-id': sessionId
+                    },
+                    body: JSON.stringify({
+                        [field === 'completed' ? 'completed' : 'needsHelp']: value
+                    })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    homeworkItems = data.homework || [];
+                    renderHomeworkBoard();
+                } else {
+                    alert(data.error || 'Status konnte nicht aktualisiert werden');
+                }
+            } catch (error) {
+                alert('Netzwerkfehler: ' + error.message);
+            }
         }
 
         function canManageHomework(ownerId) {
